@@ -10,37 +10,26 @@ function renderNode(node: SchemaNode, depth: number, opts: FormatOptions): strin
   const lines: string[] = [];
   const maxD = opts.maxDepth ?? 6;
 
-  if (depth > maxD) {
-    return '';
-  }
+  if (depth > maxD) return '';
 
   switch (node.kind) {
     case 'heading': {
       const level = Math.min(node.level || 1, 6);
-      const prefix = '#'.repeat(level);
-      lines.push(`${prefix} ${node.title}`);
+      lines.push(`${'#'.repeat(level)} ${node.title}`);
       if (node.content && node.content !== node.title) {
         lines.push('');
         lines.push(node.content);
       }
       break;
     }
-
-    case 'paragraph': {
-      if (node.content) {
-        lines.push(node.content);
-      }
+    case 'paragraph':
+      if (node.content) lines.push(node.content);
       break;
-    }
-
     case 'code': {
       const lang = node.metadata?.lang ?? '';
-      lines.push(`\`\`\`${lang}`);
-      lines.push(node.content);
-      lines.push('```');
+      lines.push(`\`\`\`${lang}\n${node.content}\n\`\`\``);
       break;
     }
-
     case 'blockquote': {
       const childLines = renderChildren(node, depth, opts);
       lines.push(
@@ -49,51 +38,45 @@ function renderNode(node: SchemaNode, depth: number, opts: FormatOptions): strin
           .filter(Boolean)
           .map(l => `> ${l}`)
       );
-      if (node.content && childLines.length === 0) {
-        lines.push(`> ${node.content}`);
-      }
+      if (!childLines && node.content) lines.push(`> ${node.content}`);
       break;
     }
-
-    case 'list': {
-      const childLines = renderChildren(node, depth + 1, opts);
-      if (childLines) {
-        lines.push(childLines);
-      }
+    case 'list':
+      lines.push(renderChildren(node, depth + 1, opts));
       break;
-    }
-
     case 'listItem': {
-      const ordered = node.metadata?.ordered;
-      const prefix = ordered ? `${node.metadata?.start ?? 1}. ` : '- ';
-      if (node.content) {
-        lines.push(`${prefix}${node.content}`);
-      }
+      const prefix = node.metadata?.ordered ? `${node.metadata?.start ?? 1}. ` : '- ';
+      if (node.content) lines.push(`${prefix}${node.content}`);
       const nested = node.children
         .map(c => renderNode(c, depth + 1, opts))
         .filter(Boolean)
         .join('\n');
-      if (nested) {
-        lines.push(...nested.split('\n').map(l => `  ${l}`));
-      }
+      if (nested) lines.push(...nested.split('\n').map(l => `  ${l}`));
       break;
     }
-
-    case 'link': {
-      if (node.metadata?.href) {
-        lines.push(`[${node.content || node.title}](${node.metadata.href})`);
-      }
+    case 'link':
+      if (node.metadata?.href) lines.push(`[${node.content || node.title}](${node.metadata.href})`);
       break;
-    }
-
-    case 'image': {
-      if (node.metadata?.href) {
+    case 'image':
+    case 'mockup': {
+      if (node.metadata?.imageUrl || node.metadata?.href) {
+        const url = node.metadata.imageUrl || node.metadata.href || '';
         const alt = node.metadata?.alt ?? node.title;
-        lines.push(`![${alt}](${node.metadata.href})`);
+        lines.push(`![${alt}](${url})`);
+        if (node.metadata?.ocrText) {
+          lines.push(`> OCR: ${node.metadata.ocrText}`);
+        }
+        if (node.metadata?.components?.length) {
+          lines.push('> 组件:');
+          for (const c of node.metadata.components) {
+            lines.push(
+              `> - ${c.type}${c.label ? ` "${c.label}"` : ''}${c.action ? ` → ${c.action}` : ''}`
+            );
+          }
+        }
       }
       break;
     }
-
     case 'table': {
       const rows = node.metadata?.rows;
       if (rows && rows.length > 0) {
@@ -103,9 +86,7 @@ function renderNode(node: SchemaNode, depth: number, opts: FormatOptions): strin
           lines.push(`| ${header.map(() => '---').join(' | ')} |`);
           for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
-            if (row) {
-              lines.push(`| ${row.join(' | ')} |`);
-            }
+            if (row) lines.push(`| ${row.join(' | ')} |`);
           }
         }
       }
@@ -125,7 +106,6 @@ function renderChildren(node: SchemaNode, depth: number, opts: FormatOptions): s
 
 export function formatOutput(output: AgentOutput, opts: FormatOptions = {}): string {
   const sections: string[] = [];
-
   sections.push(`# ${output.documentId}`);
 
   if (opts.stats) {
@@ -140,12 +120,9 @@ export function formatOutput(output: AgentOutput, opts: FormatOptions = {}): str
   }
 
   sections.push('');
-
   for (const node of output.nodes) {
     const rendered = renderNode(node, 0, opts);
-    if (rendered) {
-      sections.push(rendered);
-    }
+    if (rendered) sections.push(rendered);
   }
 
   if (opts.evidence && output.evidence.length > 0) {

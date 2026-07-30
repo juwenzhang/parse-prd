@@ -89,6 +89,7 @@ function patchLlmOutput(raw: Record<string, unknown>): Record<string, unknown> {
     if (!nfr.metric) nfr.metric = '待定义';
   });
   fixArr(patched.userStories, us => {
+    if (!us.id) us.id = `US-${Math.random().toString(36).slice(2, 6)}`;
     if (!us.role) us.role = '用户';
     if (!us.goal) us.goal = '完成操作';
     if (!us.reason) us.reason = '提高效率';
@@ -131,6 +132,7 @@ function patchLlmOutput(raw: Record<string, unknown>): Record<string, unknown> {
     if (!Array.isArray(patched[k])) Reflect.set(patched, k, []);
   }
   for (const [k, d] of [
+    ['overview', ''],
     ['background', ''],
     ['summary', ''],
     ['estimatedEffort', 'M'],

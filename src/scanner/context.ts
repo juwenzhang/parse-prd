@@ -1,3 +1,4 @@
+import {buildOpenSpecSummary} from './openspec';
 import type {CodebaseContext} from './types';
 
 export function buildContextSummary(ctx: CodebaseContext): string {
@@ -28,6 +29,11 @@ export function buildContextSummary(ctx: CodebaseContext): string {
 
   if (ctx.existingSpecs.length > 0) {
     lines.push(`已有 OpenSpec 规范: ${ctx.existingSpecs.join(', ')}`);
+  }
+
+  const osSummary = buildOpenSpecSummary(ctx.openSpec);
+  if (osSummary) {
+    lines.push(`\n${osSummary}`);
   }
 
   if (ctx.packageManager) lines.push(`包管理器: ${ctx.packageManager}`);

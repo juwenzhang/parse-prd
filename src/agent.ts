@@ -1,5 +1,24 @@
 import {parseDocument} from './parsers/index';
 
+export interface MockupComponent {
+  type:
+    | 'text-input'
+    | 'password-input'
+    | 'button'
+    | 'link'
+    | 'image'
+    | 'table'
+    | 'form'
+    | 'container'
+    | 'text'
+    | string;
+  label?: string;
+  placeholder?: string;
+  action?: string;
+  children?: MockupComponent[];
+  metadata?: Record<string, string>;
+}
+
 export interface AgentInput {
   documentId: string;
   source: 'pdf' | 'markdown' | 'text' | 'xlsx';
@@ -32,7 +51,8 @@ export type NodeKind =
   | 'code'
   | 'blockquote'
   | 'list'
-  | 'listItem';
+  | 'listItem'
+  | 'mockup';
 
 export interface SchemaNode {
   id: string;
@@ -51,6 +71,10 @@ export interface SchemaNode {
     start?: number;
     pageNumber?: number;
     sheetName?: string;
+    // mockup
+    imageUrl?: string;
+    ocrText?: string;
+    components?: MockupComponent[];
   };
 }
 

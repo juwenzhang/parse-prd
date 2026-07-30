@@ -24,7 +24,16 @@ function guardSource(v: string): DocSource {
 
 async function readInput(args: string[]): Promise<{content?: string; filePath?: string}> {
   const filePath = flag(args, '--file');
-  if (filePath) return {filePath, content: undefined};
+  if (filePath) {
+    const ext = filePath.split('.').pop()?.toLowerCase();
+    // For text-based formats, read content directly; for binary formats, pass filePath
+    if (ext === 'md' || ext === 'markdown' || ext === 'txt' || ext === 'text') {
+      const fs = await import('node:fs/promises');
+      const content = await fs.readFile(filePath, 'utf-8');
+      return {content, filePath: undefined};
+    }
+    return {filePath, content: undefined};
+  }
   if (hasFlag(args, '--stdin')) {
     const chunks: Buffer[] = [];
     for await (const chunk of process.stdin) {

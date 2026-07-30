@@ -1,3 +1,5 @@
+import type {OpenSpecContext} from './openspec';
+
 export interface CodebaseContext {
   root: string;
   techStack: {
@@ -10,4 +12,5 @@ export interface CodebaseContext {
   existingAPIs: string[];
   existingModels: string[];
   existingSpecs: string[];
+  openSpec: OpenSpecContext;
 }

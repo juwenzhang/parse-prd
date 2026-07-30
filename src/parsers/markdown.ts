@@ -209,14 +209,10 @@ function parseMarkdownNodes(content: string): SchemaNode[] {
           linkNode.metadata = {href: nestedChild.url ?? ''};
           paragraphNode.children.push(linkNode);
         } else if (nestedChild.type === 'image') {
-          const imageNode = createNode(
-            `node-${nextId()}`,
-            nestedChild.alt || 'image',
-            0,
-            'image',
-            nestedChild.url ?? ''
-          );
-          imageNode.metadata = {href: nestedChild.url ?? '', alt: nestedChild.alt || 'image'};
+          const url = nestedChild.url ?? '';
+          const alt = nestedChild.alt || 'image';
+          const imageNode = createNode(`node-${nextId()}`, alt, 0, 'mockup', alt);
+          imageNode.metadata = {imageUrl: url, alt, ocrText: '', components: []};
           paragraphNode.children.push(imageNode);
         } else if (nestedChild.type === 'inlineCode') {
           const inlineCodeNode = createNode(

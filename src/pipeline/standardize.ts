@@ -15,29 +15,32 @@ import {
 import type {StandardizedPRD} from './types';
 import {StandardizedPRDSchema} from './types';
 
-const SYSTEM_PROMPT = `你是一个资深的 PRD 标准化专家。
-将解析出的结构化节点树重写为标准化的 PRD JSON。
+const SYSTEM_PROMPT = `你是一个资深的业务需求分析师。
+你的任务是将原始 PRD 文档的 AST 节点树，重写为一份清晰、完整的业务需求文档。
 
-规则：
-1. 提取所有 FR、NFR、用户故事、领域实体
-2. 缺失优先级根据上下文推断（P0=核心，P1=重要，P2=增强）
-3. 缺失验收标准根据描述推导
-4. 用户故事遵循"作为[角色]，我想要[目标]，以便[价值]"
-5. 提取术语到 glossary
-6. scope.inScope / outOfScope 明确区分
-7. 所有输出中文`;
+核心原则：
+1. 先理解原始文档说的是什么产品/系统，再围绕这个产品展开分析
+2. 遵循 "问题背景 → 要解决什么 → 具体怎么做" 的三层结构
+3. 功能需求（FR）必须是面向用户的业务功能，不是技术实现细节
+4. 用户故事必须包含真实角色和真实场景，不能是泛化的"用户"
+5. domainEntities 是从需求中自然抽象出的业务概念（订单、用户、商品等）
+6. 非功能需求只在原始文档明确提及时才写，不要臆造
+7. 如果原始文档包含图片/UI 描述节点，将其转化为对应的交互说明
+8. 所有输出必须是中文`;
 
 function buildPrompt(parsed: AgentOutput, ctx: CodebaseContext): string {
-  return `将以下节点树重写为 JSON 格式的标准化 PRD。
+  const nodesPreview = JSON.stringify(parsed.nodes.slice(0, 30), null, 2);
 
-节点树：
-${JSON.stringify(parsed.nodes.slice(0, 30), null, 2)}
+  return `以下是原始 PRD 文档解析后的 AST 节点树。
+请基于这些内容，重写为 JSON 格式的业务需求文档。
 
-证据：
-${JSON.stringify(parsed.evidence.slice(0, 20), null, 2)}
+节点树（这是你要分析的产品需求，不是你要设计的工具）：
+${nodesPreview}
 
-统计：${JSON.stringify(parsed.stats)}
-${wrapContext(ctx)}`;
+统计信息（节点总数、类型分布）：${JSON.stringify(parsed.stats)}
+${wrapContext(ctx)}
+
+请输出符合 StandardizedPRD schema 的 JSON 对象。每一个字段都围绕这个产品展开，而不是描述"文档解析工具"。`;
 }
 
 export async function runStandardize(
