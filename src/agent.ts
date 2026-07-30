@@ -1,10 +1,10 @@
-import {unified} from 'unified';
-import remarkParse from 'remark-parse';
+import {parseDocument} from './parsers/index';
 
 export interface AgentInput {
   documentId: string;
-  source: 'pdf' | 'markdown' | 'text';
-  content: string;
+  source: 'pdf' | 'markdown' | 'text' | 'xlsx';
+  content?: string;
+  filePath?: string;
   focusTitle?: string;
 }
 
@@ -12,6 +12,7 @@ export interface EvidenceItem {
   type: 'text' | 'structure';
   source: 'content' | 'title' | 'section';
   snippet: string;
+  context?: string;
 }
 
 export interface Section {
@@ -22,25 +23,41 @@ export interface Section {
   children: Section[];
 }
 
+export type NodeKind =
+  | 'heading'
+  | 'paragraph'
+  | 'link'
+  | 'table'
+  | 'image'
+  | 'code'
+  | 'blockquote'
+  | 'list'
+  | 'listItem';
+
 export interface SchemaNode {
   id: string;
   title: string;
   level: number;
   content: string;
-  kind: 'heading' | 'paragraph' | 'link' | 'table' | 'image';
+  kind: NodeKind;
   children: SchemaNode[];
   parentId?: string;
   metadata?: {
     href?: string;
     alt?: string;
     rows?: string[][];
+    lang?: string;
+    ordered?: boolean;
+    start?: number;
+    pageNumber?: number;
+    sheetName?: string;
   };
 }
 
 export interface SchedulerViewItem {
   id: string;
   title: string;
-  kind: SchemaNode['kind'];
+  kind: NodeKind;
   level: number;
   content: string;
   parentId?: string;
@@ -48,10 +65,18 @@ export interface SchedulerViewItem {
   metadata?: SchemaNode['metadata'];
 }
 
+export interface AgentStats {
+  totalNodes: number;
+  byKind: Partial<Record<NodeKind, number>>;
+  maxDepth: number;
+  headingCount: number;
+}
+
 export interface AgentOutput {
   documentId: string;
   source: AgentInput['source'];
   summary: string;
+  stats: AgentStats;
   sections: Section[];
   evidence: EvidenceItem[];
   nodes: SchemaNode[];
@@ -62,8 +87,69 @@ function countNodes(nodes: SchemaNode[]): number {
   return nodes.reduce((total, node) => total + 1 + countNodes(node.children), 0);
 }
 
+function maxDepth(nodes: SchemaNode[], currentDepth = 0): number {
+  let depth = currentDepth;
+  for (const node of nodes) {
+    const childDepth = maxDepth(node.children, currentDepth + 1);
+    if (childDepth > depth) {
+      depth = childDepth;
+    }
+  }
+  return depth;
+}
+
+function buildStats(nodes: SchemaNode[]): AgentStats {
+  const byKind: Record<string, number> = {};
+  let headingCount = 0;
+
+  const walk = (nodeList: SchemaNode[]): void => {
+    for (const node of nodeList) {
+      byKind[node.kind] = (byKind[node.kind] ?? 0) + 1;
+      if (node.kind === 'heading') {
+        headingCount++;
+      }
+      walk(node.children);
+    }
+  };
+  walk(nodes);
+
+  return {
+    totalNodes: countNodes(nodes),
+    byKind: byKind as AgentStats['byKind'],
+    maxDepth: maxDepth(nodes),
+    headingCount
+  };
+}
+
+function buildSummary(nodes: SchemaNode[], source: string): string {
+  const headings: string[] = [];
+
+  const collect = (nodeList: SchemaNode[]): void => {
+    for (const node of nodeList) {
+      if (node.kind === 'heading' && node.title) {
+        headings.push(node.title);
+        if (headings.length >= 8) {
+          return;
+        }
+      }
+      collect(node.children);
+      if (headings.length >= 8) {
+        return;
+      }
+    }
+  };
+  collect(nodes);
+
+  if (headings.length === 0) {
+    return `Parsed ${source} document with ${countNodes(nodes)} node(s).`;
+  }
+
+  const outline = headings.join(' › ');
+  return `${outline}（共 ${countNodes(nodes)} 节点）`;
+}
+
 function toSections(nodes: SchemaNode[]): Section[] {
-  return nodes.map((node) => ({
+  return nodes.map(node => ({
     title: node.title,
     kind: node.level === 1 ? 'summary' : 'detail',
     text: node.content || node.title,
@@ -72,70 +158,11 @@ function toSections(nodes: SchemaNode[]): Section[] {
   }));
 }
 
-function createNode(
-  id: string,
-  title: string,
-  level: number,
-  kind: SchemaNode['kind'],
-  content: string
-): SchemaNode {
-  return {
-    id,
-    title,
-    level,
-    content,
-    kind,
-    children: []
-  };
-}
-
 function attachParent(nodes: SchemaNode[], parentId?: string): void {
   for (const node of nodes) {
     node.parentId = parentId;
     attachParent(node.children, node.id);
   }
-}
-
-function toPlainText(node: any): string {
-  if (!node) {
-    return '';
-  }
-
-  if (typeof node === 'string') {
-    return node;
-  }
-
-  if (node.type === 'text' || node.type === 'inlineCode') {
-    return node.value ?? '';
-  }
-
-  if (node.type === 'html') {
-    return '';
-  }
-
-  if (node.type === 'link' || node.type === 'image') {
-    return node.alt ?? '';
-  }
-
-  if (Array.isArray(node.children)) {
-    return node.children.map((child: any) => toPlainText(child)).join('');
-  }
-
-  if (typeof node.value === 'string') {
-    return node.value;
-  }
-
-  return '';
-}
-
-function toTableRows(table: any): string[][] {
-  const rows = Array.isArray(table?.children) ? table.children : [];
-  return rows
-    .map((row: any) => {
-      const cells = Array.isArray(row?.children) ? row.children : [];
-      return cells.map((cell: any) => toPlainText(cell).trim());
-    })
-    .filter((row: string[]) => row.some(Boolean));
 }
 
 function filterNodesByTitle(nodes: SchemaNode[], focusTitle?: string): SchemaNode[] {
@@ -159,110 +186,40 @@ function filterNodesByTitle(nodes: SchemaNode[], focusTitle?: string): SchemaNod
     return null;
   };
 
-  const matched = nodes.map((node) => matchNode(node)).find(Boolean);
+  const matched = nodes.map(node => matchNode(node)).find(Boolean);
   if (!matched) {
     return [];
   }
 
   const collectSubtree = (node: SchemaNode): SchemaNode => ({
     ...node,
-    children: node.children.map((child) => collectSubtree(child))
+    children: node.children.map(child => collectSubtree(child))
   });
 
   return [collectSubtree(matched)];
 }
 
-function parseMarkdownNodes(content: string): SchemaNode[] {
-  const processor = unified().use(remarkParse);
-  const tree = processor.parse(content) as any;
-  const nodes: SchemaNode[] = [];
-  const headingStack: Array<{level: number; node: SchemaNode}> = [];
-  let counter = 1;
-
-  const appendNode = (node: SchemaNode, parent?: SchemaNode): void => {
-    if (parent) {
-      parent.children.push(node);
-    } else {
-      nodes.push(node);
-    }
-  };
-
-  const children = Array.isArray(tree?.children) ? tree.children : [];
-  for (const child of children) {
-    if (child.type === 'heading') {
-      const level = Number(child.depth ?? 1);
-      const title = toPlainText(child).trim() || 'Untitled';
-      while (headingStack.length > 0 && (headingStack[headingStack.length - 1]?.level ?? 0) >= level) {
-        headingStack.pop();
-      }
-
-      const parent = headingStack[headingStack.length - 1]?.node;
-      const headingNode = createNode(`node-${counter++}`, title, level, 'heading', '');
-      appendNode(headingNode, parent);
-      headingStack.push({level, node: headingNode});
-      continue;
-    }
-
-    if (child.type === 'paragraph') {
-      const text = toPlainText(child).trim();
-      const paragraphNode = createNode(`node-${counter++}`, 'paragraph', 0, 'paragraph', text);
-      const parent = headingStack[headingStack.length - 1]?.node;
-      appendNode(paragraphNode, parent);
-
-      if (parent?.kind === 'heading' && text) {
-        parent.content = `${parent.content}${parent.content ? '\n' : ''}${text}`.trim();
-      }
-
-      const nestedChildren = Array.isArray(child.children) ? child.children : [];
-      for (const nestedChild of nestedChildren) {
-        if (nestedChild.type === 'link') {
-          const linkNode = createNode(`node-${counter++}`, toPlainText(nestedChild).trim() || 'link', 0, 'link', nestedChild.url ?? '');
-          linkNode.metadata = {href: nestedChild.url ?? ''};
-          paragraphNode.children.push(linkNode);
-        } else if (nestedChild.type === 'image') {
-          const imageNode = createNode(`node-${counter++}`, nestedChild.alt || 'image', 0, 'image', nestedChild.url ?? '');
-          imageNode.metadata = {href: nestedChild.url ?? '', alt: nestedChild.alt || 'image'};
-          paragraphNode.children.push(imageNode);
-        }
-      }
-      continue;
-    }
-
-    if (child.type === 'table') {
-      const tableNode = createNode(`node-${counter++}`, 'table', 0, 'table', '');
-      tableNode.metadata = {rows: toTableRows(child)};
-      const parent = headingStack[headingStack.length - 1]?.node;
-      appendNode(tableNode, parent);
-    }
-  }
-
-  return nodes;
-}
-
 export async function runAgent(input: AgentInput): Promise<AgentOutput> {
-  const lines = input.content
-    .split(/\n+/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  const title = lines[0] ?? 'Untitled';
-  const body = lines.slice(1).join(' ');
-
-  let nodes: SchemaNode[] = [];
-  if (input.source === 'markdown') {
-    nodes = parseMarkdownNodes(input.content);
-  }
+  let nodes = await parseDocument(input.source, {
+    content: input.content,
+    filePath: input.filePath
+  });
 
   nodes = filterNodesByTitle(nodes, input.focusTitle);
 
   if (nodes.length === 0) {
+    const fallbackContent = input.content ?? input.filePath ?? 'Untitled';
+    const lines = fallbackContent
+      .split(/\n+/)
+      .map(l => l.trim())
+      .filter(Boolean);
     nodes = [
       {
         id: 'node-1',
-        title,
+        title: lines[0] ?? 'Untitled',
         level: 1,
-        content: body,
-        kind: 'paragraph',
+        content: lines.slice(1).join(' ') || fallbackContent,
+        kind: 'paragraph' as const,
         children: []
       }
     ];
@@ -270,37 +227,50 @@ export async function runAgent(input: AgentInput): Promise<AgentOutput> {
 
   attachParent(nodes);
 
+  const stats = buildStats(nodes);
+  const summary = buildSummary(nodes, input.source);
   const sections = toSections(nodes);
 
-  const evidence: EvidenceItem[] = nodes.flatMap((node) => {
+  const evidence: EvidenceItem[] = nodes.flatMap(node => {
     const list: EvidenceItem[] = [];
     const visit = (current: SchemaNode): void => {
-      list.push({
-        type: current.kind === 'paragraph' || current.kind === 'heading' ? 'structure' : 'text',
-        source: current.kind === 'heading' ? 'title' : 'content',
-        snippet: current.content || current.title
-      });
+      if (current.kind === 'heading' || current.kind === 'paragraph') {
+        list.push({
+          type: 'structure',
+          source: current.kind === 'heading' ? 'title' : 'content',
+          snippet: current.content || current.title,
+          context: current.metadata?.pageNumber ? `page ${current.metadata.pageNumber}` : undefined
+        });
+      }
       current.children.forEach(visit);
     };
     visit(node);
     return list;
   });
 
-  const schedulerView = nodes.map((node) => ({
-    id: node.id,
-    title: node.title,
-    kind: node.kind,
-    level: node.level,
-    content: node.content,
-    parentId: node.parentId,
-    childrenIds: node.children.map((child) => child.id),
-    metadata: node.metadata
-  }));
+  const schedulerView: SchedulerViewItem[] = [];
+  const collectFlat = (nodeList: SchemaNode[]): void => {
+    for (const node of nodeList) {
+      schedulerView.push({
+        id: node.id,
+        title: node.title,
+        kind: node.kind,
+        level: node.level,
+        content: node.content,
+        parentId: node.parentId,
+        childrenIds: node.children.map(c => c.id),
+        metadata: node.metadata
+      });
+      collectFlat(node.children);
+    }
+  };
+  collectFlat(nodes);
 
   return {
     documentId: input.documentId,
     source: input.source,
-    summary: `Parsed ${input.source} content into ${countNodes(nodes)} schema node(s).`,
+    summary,
+    stats,
     sections,
     evidence,
     nodes,

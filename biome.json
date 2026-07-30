@@ -11,6 +11,7 @@
       "!dist",
       "!dist-offline",
       "!node_modules",
+      "!playgrounds",
       "!.lhx-kit",
       "!coverage",
       "!playwright-report",
