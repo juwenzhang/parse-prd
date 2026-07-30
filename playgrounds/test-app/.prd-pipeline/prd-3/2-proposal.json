@@ -1,0 +1,118 @@
+{
+  "specId": "notification-center",
+  "title": "Untitled Proposal",
+  "status": "draft",
+  "summary": "构建统一的消息通知中心，实现站内信通知的创建、推送、已读标记、偏好设置以及运营后台管理，支持实时推送、模板化发送和基础统计，确保消息持久化与用户体验，为后续多渠道扩展奠定基础。",
+  "modules": [
+    {
+      "name": "用户通知中心",
+      "description": "",
+      "responsibilities": [
+        "展示通知列表，支持分页与类型/状态筛选",
+        "提供未读通知数量并实时更新红点数字",
+        "标记单条或全部通知为已读",
+        "显示通知详情，支持跳转链接（如活动页）",
+        "管理用户通知偏好：允许开关各类通知（系统通知不可关闭）",
+        "通过WebSocket实时推送新通知到在线用户"
+      ],
+      "dependsOn": [
+        "用户认证模块（获取当前用户身份）",
+        "WebSocket连接管理（维持实时推送通道）"
+      ]
+    },
+    {
+      "name": "运营通知管理",
+      "description": "",
+      "responsibilities": [
+        "创建通知（手动立即发送或定时发送），支持选择通知类型与基本目标（当前为全体用户）",
+        "通知模板的增删改查，支持变量占位符和预览",
+        "查看已发送通知列表，展示每条通知的送达人数、点击人数等基础统计",
+        "催办规则配置（简单实现：基于事件触发，如未付款提醒）",
+        "发送频率限制：运营公告类通知每人每日上限3条"
+      ],
+      "dependsOn": [
+        "管理员权限验证模块",
+        "定时任务调度器（处理定时发送）",
+        "用户数据查询服务（获取用户列表）"
+      ]
+    }
+  ],
+  "apiEndpoints": [
+    {
+      "method": "GET",
+      "path": "/api/pages",
+      "summary": "查询用户通知中心"
+    },
+    {
+      "method": "POST",
+      "path": "/api/pages",
+      "summary": "创建用户通知中心"
+    },
+    {
+      "method": "GET",
+      "path": "/api/editor",
+      "summary": "查询运营通知管理"
+    },
+    {
+      "method": "POST",
+      "path": "/api/editor",
+      "summary": "创建运营通知管理"
+    }
+  ],
+  "dataModels": [
+    {
+      "name": "Notification",
+      "description": "存储每一条发送给用户的通知记录，包含内容、类型、状态及时间信息。",
+      "keyFields": [
+        "id",
+        "userId",
+        "type",
+        "title",
+        "content",
+        "isRead",
+        "createdAt"
+      ]
+    },
+    {
+      "name": "NotificationTemplate",
+      "description": "预定义的通知内容模板，包含可替换的变量占位符，供运营人员快速创建通知。",
+      "keyFields": [
+        "id",
+        "name",
+        "type",
+        "titleTemplate",
+        "contentTemplate",
+        "variables",
+        "status"
+      ]
+    },
+    {
+      "name": "UserNotificationSetting",
+      "description": "用户个人通知偏好，控制各类通知的接收开关（系统通知强制开启）。",
+      "keyFields": [
+        "userId",
+        "systemNotification",
+        "promotionNotification",
+        "reminderNotification"
+      ]
+    },
+    {
+      "name": "NotificationDeliveryRecord",
+      "description": "记录每条通知的送达、打开和点击行为，用于统计。",
+      "keyFields": [
+        "id",
+        "notificationId",
+        "userId",
+        "deliveredAt",
+        "openedAt",
+        "clickedAt"
+      ]
+    }
+  ],
+  "riskItems": [
+    "需求理解偏差：PRD中部分功能细节不够明确，需与业务方进一步确认",
+    "用户体验风险：大促高并发场景下的系统稳定性需提前压测验证"
+  ],
+  "estimatedEffort": "M",
+  "openQuestions": []
+}

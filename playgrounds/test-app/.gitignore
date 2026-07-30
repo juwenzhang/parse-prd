@@ -22,6 +22,6 @@ dist/
 .env
 
 # PRD pipeline artifacts
-.prd-pipeline/
-openspec/changes/
+# .prd-pipeline/
+# openspec/changes/
 pnpm-lock.yaml

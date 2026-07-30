@@ -1,0 +1,273 @@
+{
+  "meta": {
+    "title": "协同低代码编辑器",
+    "version": "1.0",
+    "createdAt": "2026-07-30T14:59:23.154Z"
+  },
+  "overview": "",
+  "background": "运营经常需要快速上线活动页、促销页，但开发排期跟不上，一个简单页面最快需要3天。去年就有需求，现在老板挂名，竞品已经领先，必须加快推进。",
+  "scope": {
+    "inScope": [],
+    "outOfScope": []
+  },
+  "functionalRequirements": [
+    {
+      "id": "FR-1",
+      "title": "画布编辑",
+      "description": "用户可以在画布上拖拽组件，调整位置、大小和样式，支持网格对齐、吸附线、缩放、多选、图层管理、撤销重做和常用快捷键。",
+      "priority": "P2",
+      "acceptanceCriteria": [
+        "拖拽组件到画布上后可以移动和调整大小",
+        "画布显示网格线，组件靠近时出现吸附线",
+        "支持画布缩放（如50%-200%）",
+        "按住Shift可多选组件并一起移动",
+        "提供图层列表，可调整层级顺序",
+        "支持撤销（Ctrl+Z）和重做（Ctrl+Shift+Z），最多20步",
+        "支持Ctrl+C/V复制粘贴，Ctrl+D原地复制"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "FR-2",
+      "title": "组件系统",
+      "description": "提供丰富的组件库，包括文本、图片、按钮、输入框、表格、轮播图等，组件支持嵌套和Flex布局，每个组件有独立的属性面板，可编辑内容、样式和事件。",
+      "priority": "P2",
+      "acceptanceCriteria": [
+        "组件面板展示所有可用组件，可拖入画布",
+        "支持容器组件（如div）嵌套其他组件",
+        "选中组件后右侧显示属性面板，可修改文字、颜色、大小等",
+        "支持Flex布局属性（方向、对齐、间距）",
+        "按钮组件可绑定点击事件（暂不实现复杂逻辑）"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "FR-3",
+      "title": "页面管理",
+      "description": "用户可以创建、编辑、预览、发布和删除页面，支持页面列表、搜索和分类，发布前可预览真实效果，支持版本管理和回滚。",
+      "priority": "P2",
+      "acceptanceCriteria": [
+        "在页面列表可查看所有页面，支持按名称搜索和分类筛选",
+        "创建新页面后进入编辑器",
+        "编辑过程中自动保存为草稿",
+        "发布前可预览页面真实交互效果",
+        "发布后生成可访问的URL",
+        "保留最近10个历史版本，支持回滚到任一版本"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "FR-4",
+      "title": "协同编辑",
+      "description": "多人可同时编辑同一页面，实时看到其他用户的光标和正在编辑的组件，支持编辑锁避免冲突，提供编辑者和观察者权限。",
+      "priority": "P2",
+      "acceptanceCriteria": [
+        "同一页面允许多人同时在线编辑",
+        "能看到其他协作者的光标位置和选中组件",
+        "当用户正在编辑某组件时，该组件被锁定，其他人不可修改",
+        "页面管理员可邀请他人协作，设置编辑者或观察者权限",
+        "观察者只能查看，不能修改"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "FR-5",
+      "title": "数据管理",
+      "description": "页面数据以JSON格式存储，支持自动保存草稿、发布和版本管理，后端提供CRUD和版本回滚API。",
+      "priority": "P2",
+      "acceptanceCriteria": [
+        "编辑过程中修改自动保存到后端（防丢失）",
+        "页面数据结构为描述组件树的JSON",
+        "发布操作将当前草稿转为发布版本",
+        "版本列表显示版本号和创建时间，可选择回滚"
+      ],
+      "dependencies": []
+    }
+  ],
+  "nonFunctionalRequirements": [],
+  "userStories": [
+    {
+      "id": "US-15lt",
+      "role": "运营专员",
+      "goal": "完成操作",
+      "reason": "提高效率",
+      "acceptanceCriteria": []
+    },
+    {
+      "id": "US-9wzd",
+      "role": "设计师",
+      "goal": "完成操作",
+      "reason": "提高效率",
+      "acceptanceCriteria": []
+    },
+    {
+      "id": "US-nyb7",
+      "role": "产品经理",
+      "goal": "完成操作",
+      "reason": "提高效率",
+      "acceptanceCriteria": []
+    },
+    {
+      "id": "US-1y8q",
+      "role": "管理员",
+      "goal": "完成操作",
+      "reason": "提高效率",
+      "acceptanceCriteria": []
+    }
+  ],
+  "domainEntities": [
+    {
+      "name": "页面",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "页面唯一标识"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "description": "页面名称"
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "description": "页面状态：草稿、已发布、已删除"
+        },
+        {
+          "name": "data",
+          "type": "json",
+          "description": "存储页面组件树的JSON数据"
+        },
+        {
+          "name": "version",
+          "type": "number",
+          "description": "当前版本号"
+        },
+        {
+          "name": "createdAt",
+          "type": "datetime",
+          "description": "创建时间"
+        },
+        {
+          "name": "updatedAt",
+          "type": "datetime",
+          "description": "最后更新时间"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "name": "组件",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "组件实例唯一标识"
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "description": "组件类型，如 Text, Button"
+        },
+        {
+          "name": "props",
+          "type": "json",
+          "description": "组件属性和样式配置"
+        },
+        {
+          "name": "children",
+          "type": "array",
+          "description": "子组件列表"
+        },
+        {
+          "name": "parentId",
+          "type": "string",
+          "description": "父组件ID"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "name": "版本",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "版本唯一标识"
+        },
+        {
+          "name": "pageId",
+          "type": "string",
+          "description": "关联的页面ID"
+        },
+        {
+          "name": "versionNumber",
+          "type": "number",
+          "description": "版本序号"
+        },
+        {
+          "name": "data",
+          "type": "json",
+          "description": "该版本的页面JSON数据"
+        },
+        {
+          "name": "createdAt",
+          "type": "datetime",
+          "description": "版本创建时间"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "name": "协作会话",
+      "attributes": [
+        {
+          "name": "pageId",
+          "type": "string",
+          "description": "正在协作的页面ID"
+        },
+        {
+          "name": "participants",
+          "type": "array",
+          "description": "参与者列表，每人包含用户信息和光标位置"
+        },
+        {
+          "name": "activeLock",
+          "type": "object",
+          "description": "当前被锁定的组件ID及锁定者"
+        }
+      ],
+      "relationships": []
+    }
+  ],
+  "constraints": [
+    "前端使用 React 框架",
+    "数据存储使用 PostgreSQL，大JSON可考虑对象存储",
+    "协同通信采用 WebSocket",
+    "缓存使用 Redis",
+    "API 不能与现有 /register, /login, /logout 等冲突，需使用新路由前缀如 /pages"
+  ],
+  "glossary": [
+    {
+      "term": "画布",
+      "definition": "可视化编辑区域，用户在此拖拽和编排组件"
+    },
+    {
+      "term": "组件",
+      "definition": "可复用的页面元素，如文本框、图片、按钮等"
+    },
+    {
+      "term": "属性面板",
+      "definition": "选中组件后右侧显示的配置面板，可编辑组件属性和样式"
+    },
+    {
+      "term": "OT/CRDT",
+      "definition": "实时协同编辑中解决冲突的两种算法"
+    },
+    {
+      "term": "版本回滚",
+      "definition": "将页面恢复到某个历史版本的操作"
+    }
+  ]
+}

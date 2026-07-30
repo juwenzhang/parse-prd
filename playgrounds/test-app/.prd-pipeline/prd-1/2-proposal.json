@@ -1,0 +1,133 @@
+{
+  "specId": "live-commerce-system",
+  "title": "Untitled Proposal",
+  "status": "draft",
+  "summary": "构建直播带货系统，支持主播快速开播、商品讲解、实时互动和即时下单，确保高并发下的流畅体验，并通过弹幕管理维护直播间秩序。",
+  "modules": [
+    {
+      "name": "anchor-live-management",
+      "description": "主播端直播管理模块，负责直播创建、配置、开播、结束等生命周期管理。",
+      "responsibilities": [
+        "创建直播间并设置标题、封面图",
+        "管理直播状态（准备、直播中、已结束）",
+        "集成RTMP推流与开播倒计时"
+      ],
+      "dependsOn": [
+        "用户认证模块"
+      ]
+    },
+    {
+      "name": "live-interaction",
+      "description": "直播互动模块，处理观众弹幕发送、商品卡片推送与高亮、弹幕置顶等实时交互功能。",
+      "responsibilities": [
+        "观众发送弹幕并广播实时显示",
+        "主播推送商品卡片到直播间",
+        "主播高亮当前讲解商品",
+        "主播置顶特定弹幕",
+        "实时同步弹幕和商品卡片状态"
+      ],
+      "dependsOn": [
+        "anchor-live-management",
+        "danmaku-filter-service"
+      ]
+    },
+    {
+      "name": "live-purchase",
+      "description": "购买模块，在直播间内提供商品选择与立即下单能力，支持SKU、库存校验和优惠券使用。",
+      "responsibilities": [
+        "直播间浮层内展示商品详情和SKU选择",
+        "实时校验库存并防止超卖",
+        "支持优惠券应用与订单生成"
+      ],
+      "dependsOn": [
+        "现有订单服务",
+        "商品库存服务",
+        "优惠券服务"
+      ]
+    },
+    {
+      "name": "live-analytics",
+      "description": "实时数据模块，为主播端提供在线人数、成交额、商品点击和打赏购买排行榜等数据。",
+      "responsibilities": [
+        "采集并展示直播间实时在线人数",
+        "统计商品点击量和成交金额",
+        "生成打赏/购买排行榜",
+        "数据实时推送到主播端"
+      ],
+      "dependsOn": [
+        "anchor-live-management",
+        "订单服务"
+      ]
+    },
+    {
+      "name": "admin-danmaku-filter",
+      "description": "管理端弹幕过滤模块，配置敏感词库，支撑互动模块的过滤和限流能力。",
+      "responsibilities": [
+        "管理敏感词列表（增删查）",
+        "提供弹幕过滤所需的规则数据"
+      ],
+      "dependsOn": [
+        "管理员权限系统"
+      ]
+    }
+  ],
+  "apiEndpoints": [
+    {
+      "method": "GET",
+      "path": "/anchor-live-management",
+      "summary": "查询anchor-live-management"
+    },
+    {
+      "method": "POST",
+      "path": "/anchor-live-management",
+      "summary": "创建anchor-live-management"
+    },
+    {
+      "method": "GET",
+      "path": "/live-interaction",
+      "summary": "查询live-interaction"
+    },
+    {
+      "method": "POST",
+      "path": "/live-interaction",
+      "summary": "创建live-interaction"
+    },
+    {
+      "method": "GET",
+      "path": "/live-purchase",
+      "summary": "查询live-purchase"
+    },
+    {
+      "method": "POST",
+      "path": "/live-purchase",
+      "summary": "创建live-purchase"
+    },
+    {
+      "method": "GET",
+      "path": "/live-analytics",
+      "summary": "查询live-analytics"
+    },
+    {
+      "method": "POST",
+      "path": "/live-analytics",
+      "summary": "创建live-analytics"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-danmaku-filter",
+      "summary": "查询admin-danmaku-filter"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-danmaku-filter",
+      "summary": "创建admin-danmaku-filter"
+    }
+  ],
+  "dataModels": [],
+  "riskItems": [
+    "需求理解偏差：PRD中部分功能细节不够明确，需与业务方进一步确认",
+    "用户体验风险：大促高并发场景下的系统稳定性需提前压测验证"
+  ],
+  "estimatedEffort": "M",
+  "openQuestions": []
+}

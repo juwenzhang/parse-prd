@@ -1,0 +1,337 @@
+{
+  "meta": {
+    "title": "消息通知中心",
+    "version": "1.0",
+    "createdAt": "2026-07-30T15:36:52.356Z"
+  },
+  "overview": "",
+  "background": "当前各业务线独立发送通知，缺乏统一管理，用户常因找不到通知而投诉。邮件易被拦截，短信成本高，且无法跟踪用户是否已读。",
+  "scope": {
+    "inScope": [
+      "站内信通知（系统通知、运营公告、催办提醒）",
+      "用户侧通知中心（列表、详情、已读标记、设置）",
+      "运营后台（通知创建、模板管理、发送统计）",
+      "消息持久化与WebSocket实时推送",
+      "发送频率限制（防骚扰）"
+    ],
+    "outOfScope": [
+      "站内信（用户与平台双向消息）",
+      "用户分群精准推送",
+      "APP推送（需与客户端团队另行对接）",
+      "邮件/短信服务商具体集成（仅基础对接）"
+    ]
+  },
+  "functionalRequirements": [
+    {
+      "id": "FR-1",
+      "title": "通知类型管理",
+      "description": "系统应支持以下通知类型：系统通知（订单状态变更、退款到账、账号异常等）、运营公告（活动推送，可带图片和链接）、催办提醒（如未付款30分钟后提醒）。",
+      "priority": "P2",
+      "acceptanceCriteria": [
+        "系统可根据业务事件自动生成系统通知",
+        "运营后台支持创建运营公告，填写标题、内容、图片URL、跳转链接",
+        "系统可配置催办规则，如“下单未付款30分钟后发送提醒”"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "FR-2",
+      "title": "用户通知中心",
+      "description": "登录后右上角显示铃铛图标，未读通知显示红点数字。点击进入通知列表，支持分页查看。通知可标记为已读，点击进入详情页查看完整内容，若有链接可跳转。",
+      "priority": "P2",
+      "acceptanceCriteria": [
+        "站内实时显示未读数量红点",
+        "列表展示通知标题、时间、已读/未读状态",
+        "点击通知进入详情，展示完整内容和操作链接",
+        "支持标记单条已读或全部已读"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "FR-3",
+      "title": "通知偏好设置",
+      "description": "用户可在设置页面控制是否接收各类通知。系统通知不可关闭，运营公告可自行关闭。",
+      "priority": "P2",
+      "acceptanceCriteria": [
+        "提供通知设置页面，列出通知类型及开关",
+        "系统通知类型开关置灰且默认开启",
+        "用户关闭某类通知后，不再接收该类通知",
+        "设置需持久化，并在登录后立即生效"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "FR-4",
+      "title": "运营后台管理",
+      "description": "为运营人员提供后台，支持创建通知、选择模板、定时发送、查看已发送通知列表、查阅送达人数与点击率等基础统计。",
+      "priority": "P2",
+      "acceptanceCriteria": [
+        "后台可填写通知内容，选择目标发送渠道（站内信为主）",
+        "支持选择模板并替换参数",
+        "支持设定未来时间发送",
+        "展示已发送通知列表及每条通知的送达数、点击数"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "FR-5",
+      "title": "通知模板管理",
+      "description": "支持创建和管理常用通知模板，运营人员可直接选用模板修改参数后发送。",
+      "priority": "P2",
+      "acceptanceCriteria": [
+        "可创建、编辑、停用通知模板",
+        "模板支持变量占位（如{金额}、{订单号}）",
+        "创建通知时可选择模板，填入变量值后预览"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "FR-6",
+      "title": "发送频率限制",
+      "description": "为防止骚扰，每个用户每天接收的运营通知上限为3条，系统通知不受此限制。",
+      "priority": "P2",
+      "acceptanceCriteria": [
+        "运营通知发送前检查用户当日已收数量",
+        "超过3条则丢弃或延迟到下一天发送",
+        "系统通知无此限制"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "FR-7",
+      "title": "消息推送与持久化",
+      "description": "采用WebSocket推送新通知，同时所有通知记录持久化存储，确保消息不丢失。",
+      "priority": "P2",
+      "acceptanceCriteria": [
+        "用户在线时，新通知通过WebSocket实时推送并显示未读红点",
+        "通知落库存储，包含内容、发送时间、目标用户等信息",
+        "用户打开通知中心时，从服务端获取历史通知列表"
+      ],
+      "dependencies": []
+    }
+  ],
+  "nonFunctionalRequirements": [
+    {
+      "id": "NFR-1",
+      "category": "performance",
+      "description": "消息必须持久化，发送失败需重试或记录日志。",
+      "metric": "待定义"
+    },
+    {
+      "id": "NFR-2",
+      "category": "performance",
+      "description": "WebSocket连接需支持大量并发，单用户通知列表查询响应时间应小于200ms。",
+      "metric": "待定义"
+    },
+    {
+      "id": "NFR-3",
+      "category": "performance",
+      "description": "后续可平滑接入邮件、短信渠道，以及用户分群推送功能。",
+      "metric": "待定义"
+    }
+  ],
+  "userStories": [],
+  "domainEntities": [
+    {
+      "name": "Notification",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "通知唯一标识"
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "description": "接收通知的用户ID"
+        },
+        {
+          "name": "type",
+          "type": "enum",
+          "description": "通知类型：系统通知/运营公告/催办提醒"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "description": "通知标题"
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "description": "通知正文内容"
+        },
+        {
+          "name": "imageUrl",
+          "type": "string (optional)",
+          "description": "运营公告可选的图片链接"
+        },
+        {
+          "name": "linkUrl",
+          "type": "string (optional)",
+          "description": "跳转链接"
+        },
+        {
+          "name": "isRead",
+          "type": "boolean",
+          "description": "是否已读"
+        },
+        {
+          "name": "createdAt",
+          "type": "datetime",
+          "description": "创建时间"
+        },
+        {
+          "name": "sentAt",
+          "type": "datetime (optional)",
+          "description": "实际发送时间"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "name": "NotificationTemplate",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "模板唯一标识"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "description": "模板名称"
+        },
+        {
+          "name": "type",
+          "type": "enum",
+          "description": "模板适用范围（通知类型）"
+        },
+        {
+          "name": "titleTemplate",
+          "type": "string",
+          "description": "标题模板字符串，含占位变量"
+        },
+        {
+          "name": "contentTemplate",
+          "type": "string",
+          "description": "内容模板字符串，含占位变量"
+        },
+        {
+          "name": "variables",
+          "type": "array of string",
+          "description": "使用的变量列表"
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "description": "启用/停用"
+        },
+        {
+          "name": "creatorId",
+          "type": "string",
+          "description": "创建者ID"
+        },
+        {
+          "name": "createdAt",
+          "type": "datetime",
+          "description": "创建时间"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "name": "UserNotificationSetting",
+      "attributes": [
+        {
+          "name": "userId",
+          "type": "string",
+          "description": "用户ID"
+        },
+        {
+          "name": "systemNotification",
+          "type": "boolean",
+          "description": "系统通知开关，强制为true"
+        },
+        {
+          "name": "promotionNotification",
+          "type": "boolean",
+          "description": "运营公告开关"
+        },
+        {
+          "name": "reminderNotification",
+          "type": "boolean",
+          "description": "催办提醒开关"
+        },
+        {
+          "name": "updatedAt",
+          "type": "datetime",
+          "description": "最后修改时间"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "name": "NotificationDeliveryRecord",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "记录ID"
+        },
+        {
+          "name": "notificationId",
+          "type": "string",
+          "description": "关联的通知ID"
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "description": "用户ID"
+        },
+        {
+          "name": "deliveredAt",
+          "type": "datetime",
+          "description": "送达时间"
+        },
+        {
+          "name": "openedAt",
+          "type": "datetime (optional)",
+          "description": "打开时间"
+        },
+        {
+          "name": "clickedAt",
+          "type": "datetime (optional)",
+          "description": "点击链接时间"
+        }
+      ],
+      "relationships": []
+    }
+  ],
+  "constraints": [],
+  "glossary": [
+    {
+      "term": "站内信",
+      "definition": "在网站或应用内部呈现给登录用户的通知消息，区别于邮件或短信。"
+    },
+    {
+      "term": "系统通知",
+      "definition": "由业务系统根据事件自动触发的通知，如订单状态变更、退款到账等。"
+    },
+    {
+      "term": "运营公告",
+      "definition": "运营人员主动推送的活动或公告类消息，支持富文本和跳转链接。"
+    },
+    {
+      "term": "催办提醒",
+      "definition": "针对用户待完成操作的提醒，如下单未付款、未评价等，通常带有时效触发。"
+    },
+    {
+      "term": "消息持久化",
+      "definition": "将通知数据存储在数据库中，确保消息不丢失且可回溯。"
+    },
+    {
+      "term": "防骚扰",
+      "definition": "为防止过多通知对用户造成干扰，而设置的频率或数量限制策略。"
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "specId": "collaborative-lowcode-editor",
+  "title": "Untitled Proposal",
+  "status": "draft",
+  "summary": "构建一个协同低代码编辑器，允许运营和设计人员通过拖拽组件快速创建活动页面，支持实时多人协作编辑、版本管理和一键发布，解决开发排期瓶颈。",
+  "modules": [
+    {
+      "name": "用户端-页面管理",
+      "description": "",
+      "responsibilities": [],
+      "dependsOn": [
+        "用户端-编辑器模块",
+        "数据存储"
+      ]
+    },
+    {
+      "name": "用户端-编辑器模块",
+      "description": "",
+      "responsibilities": [],
+      "dependsOn": [
+        "用户端-页面管理",
+        "组件系统",
+        "协同编辑模块"
+      ]
+    },
+    {
+      "name": "用户端-协同编辑模块",
+      "description": "",
+      "responsibilities": [],
+      "dependsOn": [
+        "用户端-编辑器模块",
+        "用户认证"
+      ]
+    },
+    {
+      "name": "管理端-协作管理",
+      "description": "",
+      "responsibilities": [],
+      "dependsOn": [
+        "用户端-协同编辑模块",
+        "用户管理"
+      ]
+    }
+  ],
+  "apiEndpoints": [
+    {
+      "method": "GET",
+      "path": "/--------",
+      "summary": "查询用户端-页面管理"
+    },
+    {
+      "method": "POST",
+      "path": "/--------",
+      "summary": "创建用户端-页面管理"
+    },
+    {
+      "method": "GET",
+      "path": "/---------",
+      "summary": "查询用户端-编辑器模块"
+    },
+    {
+      "method": "POST",
+      "path": "/---------",
+      "summary": "创建用户端-编辑器模块"
+    },
+    {
+      "method": "GET",
+      "path": "/----------",
+      "summary": "查询用户端-协同编辑模块"
+    },
+    {
+      "method": "POST",
+      "path": "/----------",
+      "summary": "创建用户端-协同编辑模块"
+    },
+    {
+      "method": "GET",
+      "path": "/--------",
+      "summary": "查询管理端-协作管理"
+    },
+    {
+      "method": "POST",
+      "path": "/--------",
+      "summary": "创建管理端-协作管理"
+    }
+  ],
+  "dataModels": [
+    {
+      "name": "页面",
+      "description": "用户创建的页面，包含组件树 JSON 数据、状态和基本元信息。",
+      "keyFields": [
+        "id"
+      ]
+    },
+    {
+      "name": "页面版本",
+      "description": "页面的历史版本快照，记录某一时刻的完整页面数据。",
+      "keyFields": [
+        "id",
+        "pageId"
+      ]
+    },
+    {
+      "name": "组件类型",
+      "description": "系统预定义的组件模板，描述组件名称、类别、默认属性和可配置项。",
+      "keyFields": [
+        "type"
+      ]
+    },
+    {
+      "name": "协作会话",
+      "description": "记录某个页面当前的所有在线协作者、光标位置和组件锁定状态。",
+      "keyFields": [
+        "pageId"
+      ]
+    }
+  ],
+  "riskItems": [
+    "需求理解偏差：PRD中部分功能细节不够明确，需与业务方进一步确认",
+    "用户体验风险：大促高并发场景下的系统稳定性需提前压测验证"
+  ],
+  "estimatedEffort": "M",
+  "openQuestions": []
+}

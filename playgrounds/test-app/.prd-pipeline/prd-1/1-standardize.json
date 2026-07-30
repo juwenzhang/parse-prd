@@ -1,0 +1,320 @@
+{
+  "meta": {
+    "title": "Untitled",
+    "version": "1.0",
+    "createdAt": "2026-07-30T14:52:54.701Z"
+  },
+  "overview": "",
+  "background": "运营多次催促，竞品已成熟，当前图文详情页转化率低，需建设直播带货系统，通过主播实时演示提升转化率。同时大促期间流量波动大，曾因10万并发导致服务器崩溃，需支持高并发直播。",
+  "scope": {
+    "inScope": [],
+    "outOfScope": []
+  },
+  "functionalRequirements": [
+    {
+      "id": "FR1",
+      "title": "未命名需求",
+      "description": "主播可通过手机或电脑开启直播，设置标题、上传封面图，正式开播前显示倒计时准备界面。",
+      "priority": "P2",
+      "acceptanceCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": "FR2",
+      "title": "未命名需求",
+      "description": "主播在直播中可推送商品卡片到直播间，讲解时高亮当前讲解商品，观众点击卡片可查看详情并跳转购买。",
+      "priority": "P2",
+      "acceptanceCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": "FR3",
+      "title": "未命名需求",
+      "description": "观众可实时发送弹幕，弹幕在直播画面滚动显示；主播端可实时查看弹幕，并可置顶某条弹幕以便回复。",
+      "priority": "P2",
+      "acceptanceCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": "FR4",
+      "title": "未命名需求",
+      "description": "观众点击商品卡后在直播间内弹出购买浮层，支持选择SKU、校验库存，并可使用优惠券，完成不跳页下单。",
+      "priority": "P2",
+      "acceptanceCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": "FR5",
+      "title": "未命名需求",
+      "description": "主播端可查看实时直播数据，包括在线人数、商品点击量、成交额、新增粉丝，以及打赏/购买排行榜，刺激消费。",
+      "priority": "P2",
+      "acceptanceCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": "FR6",
+      "title": "未命名需求",
+      "description": "系统对弹幕进行限流和敏感词过滤，避免刷屏并拦截不当内容。",
+      "priority": "P2",
+      "acceptanceCriteria": [],
+      "dependencies": []
+    }
+  ],
+  "nonFunctionalRequirements": [],
+  "userStories": [
+    {
+      "id": "US1",
+      "role": "主播",
+      "goal": "通过手机或电脑快速开播，设置直播信息并完成倒计时准备",
+      "reason": "提高效率",
+      "acceptanceCriteria": [
+        "可以上传封面图并填写标题",
+        "开播前显示3秒倒计时",
+        "直播推流稳定，延迟低于3秒"
+      ]
+    },
+    {
+      "id": "US2",
+      "role": "观众",
+      "goal": "在直播间发送弹幕与主播互动",
+      "reason": "提高效率",
+      "acceptanceCriteria": [
+        "弹幕实时出现在屏幕上",
+        "弹幕过多时长时能正常显示",
+        "包含敏感词的弹幕被拦截"
+      ]
+    },
+    {
+      "id": "US3",
+      "role": "观众",
+      "goal": "点击商品卡后在直播间浮层内选择规格并下单购买",
+      "reason": "提高效率",
+      "acceptanceCriteria": [
+        "浮层内可展示商品详情和SKU选项",
+        "库存实时校验，超卖时提示",
+        "可正常使用优惠券"
+      ]
+    },
+    {
+      "id": "US4",
+      "role": "主播",
+      "goal": "讲解商品时将其卡片高亮，并可查看实时销售数据",
+      "reason": "提高效率",
+      "acceptanceCriteria": [
+        "当前讲解商品卡片有明显高亮效果",
+        "后台实时更新在线人数、成交额等数据"
+      ]
+    }
+  ],
+  "domainEntities": [
+    {
+      "name": "直播间",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "直播间唯一标识"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "description": "直播标题"
+        },
+        {
+          "name": "coverUrl",
+          "type": "string",
+          "description": "封面图链接"
+        },
+        {
+          "name": "anchorId",
+          "type": "string",
+          "description": "主播用户ID"
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "description": "直播状态：未开始/直播中/已结束"
+        },
+        {
+          "name": "onlineCount",
+          "type": "number",
+          "description": "当前在线人数"
+        },
+        {
+          "name": "startTime",
+          "type": "datetime",
+          "description": "直播开始时间"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "name": "商品",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "商品ID"
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "description": "商品名称"
+        },
+        {
+          "name": "price",
+          "type": "number",
+          "description": "售价"
+        },
+        {
+          "name": "stock",
+          "type": "number",
+          "description": "当前库存"
+        },
+        {
+          "name": "skus",
+          "type": "array",
+          "description": "可选的SKU列表，如颜色、尺码等"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "name": "弹幕",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "弹幕ID"
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "description": "文本内容"
+        },
+        {
+          "name": "senderId",
+          "type": "string",
+          "description": "发送者用户ID"
+        },
+        {
+          "name": "sendTime",
+          "type": "datetime",
+          "description": "发送时间"
+        },
+        {
+          "name": "isPinned",
+          "type": "boolean",
+          "description": "是否被主播置顶"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "name": "订单",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "string",
+          "description": "订单ID"
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "description": "下单用户ID"
+        },
+        {
+          "name": "productId",
+          "type": "string",
+          "description": "购买商品ID"
+        },
+        {
+          "name": "sku",
+          "type": "string",
+          "description": "选择的SKU"
+        },
+        {
+          "name": "quantity",
+          "type": "number",
+          "description": "购买数量"
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "description": "实付金额"
+        },
+        {
+          "name": "couponId",
+          "type": "string",
+          "description": "使用的优惠券ID"
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "description": "订单状态：待支付/已支付/已取消"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "name": "主播",
+      "attributes": [
+        {
+          "name": "userId",
+          "type": "string",
+          "description": "对应系统用户ID"
+        },
+        {
+          "name": "nickname",
+          "type": "string",
+          "description": "主播昵称"
+        },
+        {
+          "name": "followerCount",
+          "type": "number",
+          "description": "粉丝数"
+        }
+      ],
+      "relationships": []
+    }
+  ],
+  "constraints": [
+    "前端必须使用React框架",
+    "后端基于现有Node.js/TypeScript技术栈，可使用pino日志、zod校验",
+    "视频流采用RTMP推流协议，端到端延迟控制在3秒以内",
+    "系统需支持10万以上同时在线，大促期间可弹性扩容",
+    "实时消息推送（弹幕、数据）使用WebSocket，不得使用轮询",
+    "热点数据（直播状态、在线人数等）使用Redis缓存，减轻数据库压力",
+    "弹幕服务需实现限流和敏感词过滤，政治类敏感词直接拦截"
+  ],
+  "glossary": [
+    {
+      "term": "RTMP",
+      "definition": "Real-Time Messaging Protocol，实时消息传输协议，常用于直播推流"
+    },
+    {
+      "term": "推流",
+      "definition": "将采集的视频信号通过网络传输到服务器的过程"
+    },
+    {
+      "term": "弹幕",
+      "definition": "一种实时评论形式，以滚动字幕的方式出现在视频画面上"
+    },
+    {
+      "term": "SKU",
+      "definition": "Stock Keeping Unit，库存量单位，指商品的具体规格（如颜色、尺码）"
+    },
+    {
+      "term": "WebSocket",
+      "definition": "基于TCP的全双工通信协议，用于实现实时推送"
+    },
+    {
+      "term": "高并发",
+      "definition": "系统在短时间内处理大量同时涌入的请求"
+    },
+    {
+      "term": "浮层",
+      "definition": "覆盖在当前页面上方的弹出层，通常用于电商快速购买"
+    }
+  ]
+}

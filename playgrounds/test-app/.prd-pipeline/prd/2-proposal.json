@@ -1,0 +1,113 @@
+{
+  "specId": "order-management-system",
+  "title": "Untitled Proposal",
+  "status": "draft",
+  "summary": "设计一个完整的订单管理系统，覆盖从下单、状态跟踪、取消、退款到评价的全生命周期，并支持运营后台审核退款与评价内容，解决下单后不可见、退款不透明、评价缺失等痛点，提升用户信任与运营效率。",
+  "modules": [
+    {
+      "name": "用户端订单模块",
+      "description": "",
+      "responsibilities": [
+        "支持多商品、多收货地址订单提交与库存扣减",
+        "实时跟踪订单状态（轮询）并展示历史订单列表",
+        "允许在发货前取消订单并自动触发退款",
+        "提供部分退款申请与进度查询功能",
+        "支持收货后对订单商品进行评分与文字评价"
+      ],
+      "dependsOn": [
+        "用户认证服务",
+        "支付服务（微信/支付宝/信用卡）",
+        "库存服务",
+        "消息队列（状态变更通知）"
+      ]
+    },
+    {
+      "name": "管理端订单模块",
+      "description": "",
+      "responsibilities": [
+        "审核大额退款申请（自动处理小额），记录全部退款操作日志",
+        "审核用户提交的评价内容，过滤违规信息",
+        "查看退款审核队列及历史处理记录，支持条件筛选",
+        "监控异常订单与退款趋势，生成简要统计"
+      ],
+      "dependsOn": [
+        "运营人员认证与权限服务",
+        "退款处理引擎",
+        "评价审核引擎",
+        "日志服务"
+      ]
+    }
+  ],
+  "apiEndpoints": [
+    {
+      "method": "GET",
+      "path": "/-------",
+      "summary": "查询用户端订单模块"
+    },
+    {
+      "method": "POST",
+      "path": "/-------",
+      "summary": "创建用户端订单模块"
+    },
+    {
+      "method": "GET",
+      "path": "/-------",
+      "summary": "查询管理端订单模块"
+    },
+    {
+      "method": "POST",
+      "path": "/-------",
+      "summary": "创建管理端订单模块"
+    }
+  ],
+  "dataModels": [
+    {
+      "name": "Order",
+      "description": "用户提交的订单核心实体，包含状态、金额、时间等主信息",
+      "keyFields": [
+        "orderId",
+        "userId"
+      ]
+    },
+    {
+      "name": "OrderItem",
+      "description": "订单中的单个商品项，关联商品、数量、单价及收货地址",
+      "keyFields": [
+        "itemId",
+        "orderId"
+      ]
+    },
+    {
+      "name": "RefundRequest",
+      "description": "用户发起的退款申请，记录金额、原因、处理状态",
+      "keyFields": [
+        "refundId",
+        "orderId"
+      ]
+    },
+    {
+      "name": "Review",
+      "description": "用户对已购买商品发表的主观评价，包含评分、文字及审核状态",
+      "keyFields": [
+        "reviewId",
+        "orderId",
+        "userId"
+      ]
+    },
+    {
+      "name": "RefundLog",
+      "description": "退款操作的完整审计日志，记录操作人、时间、金额变更等细节",
+      "keyFields": [
+        "logId",
+        "refundId",
+        "timestamp"
+      ]
+    }
+  ],
+  "riskItems": [
+    "需求理解偏差：PRD中部分功能细节不够明确，需与业务方进一步确认",
+    "用户体验风险：大促高并发场景下的系统稳定性需提前压测验证"
+  ],
+  "estimatedEffort": "M",
+  "openQuestions": []
+}

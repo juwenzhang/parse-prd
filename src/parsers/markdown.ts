@@ -1,9 +1,47 @@
+import fs from 'node:fs/promises';
+
 import remarkParse from 'remark-parse';
 import {unified} from 'unified';
 
 import type {SchemaNode} from '../agent';
+import {logger} from '../logger';
+import {getVlmProvider} from '../vlm/index';
+
 import type {DocumentParser, ParserInput} from './types';
 import {createNode, toPlainText, toTableRows} from './utils';
+
+async function enrichImageNode(node: SchemaNode, imagePath: string): Promise<void> {
+  try {
+    await fs.access(imagePath);
+    const buffer = await fs.readFile(imagePath);
+    const vlm = getVlmProvider();
+    const ext = imagePath.split('.').pop()?.toLowerCase();
+    const mimeMap: Record<string, string> = {
+      png: 'image/png',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      gif: 'image/gif',
+      webp: 'image/webp'
+    };
+
+    const result = await vlm.describe({
+      base64: buffer.toString('base64'),
+      mimeType: mimeMap[ext ?? 'png'] ?? 'image/png'
+    });
+
+    if (node.metadata) {
+      node.metadata.ocrText = result.ocrText || node.metadata.ocrText;
+      node.metadata.components =
+        result.components.length > 0 ? result.components : node.metadata.components;
+    }
+    logger.info(
+      {path: imagePath, ocrLen: result.ocrText.length, comps: result.components.length},
+      'image enriched via VLM'
+    );
+  } catch {
+    // VLM failure or file not found — keep placeholder
+  }
+}
 
 interface MdastNode {
   type: string;
@@ -214,6 +252,11 @@ function parseMarkdownNodes(content: string): SchemaNode[] {
           const imageNode = createNode(`node-${nextId()}`, alt, 0, 'mockup', alt);
           imageNode.metadata = {imageUrl: url, alt, ocrText: '', components: []};
           paragraphNode.children.push(imageNode);
+
+          // Enrich with VLM if image is a local file
+          if (url && !url.startsWith('http')) {
+            enrichImageNode(imageNode, url).catch(() => {});
+          }
         } else if (nestedChild.type === 'inlineCode') {
           const inlineCodeNode = createNode(
             `node-${nextId()}`,

@@ -15,22 +15,21 @@ import type {OpenSpecProposal, StandardizedPRD} from './types';
 import {OpenSpecProposalSchema} from './types';
 
 const SYSTEM_PROMPT = `你是一个资深的产品方案设计师。
-你的任务是基于业务需求文档，设计清晰的产品方案。
+基于业务需求文档和现有代码上下文，设计完整的产品方案。每个字段都必须填写，不允许任何空值。
 
 核心原则：
-1. 模块拆分按业务流程划分（用户端、管理端、数据看板等），不是按技术分层
-2. 每个模块描述要面向产品经理可读，不是面向开发者
-3. API 端点设计用业务语义命名（/orders/refund 而不是 /api/v1/refund）
-4. 数据模型只列核心业务实体，不列技术中间表
-5. 风险点聚焦在需求理解偏差、用户场景遗漏，而非技术风险
-6. 开放问题是产品经理需要和业务方确认的，而非技术选型问题
-7. 所有输出中文
-8. 绝不返回空列表`;
+1. 模块按业务流程划分（用户端、管理端），每个模块必有 responsibilities 和 dependsOn
+2. API 端点从功能需求逐条推导，每个模块至少 2 个端点。格式 {method, path, summary}
+3. 数据模型只列核心实体，每个必有 description 和 keyFields
+4. specId 用 kebab-case（如 order-management-system）
+5. summary 用一段话概括方案目标
+6. 风险点至少 3 个，聚焦需求遗漏、用户体验风险
+7. 所有输出中文`;
 
 function buildPrompt(prd: StandardizedPRD, ctx: CodebaseContext): string {
   return `基于以下业务需求文档，设计产品方案的 JSON。
 
-业务需求文档（这是你真正要设计的产品）：
+业务需求文档：
 ${JSON.stringify(prd, null, 2).slice(0, 8000)}
 ${wrapContext(ctx)}`;
 }
@@ -69,6 +68,23 @@ export async function runProposal(
     schema: OpenSpecProposalSchema,
     schemaName: 'OpenSpecProposal'
   });
+
+  // auto-fill API endpoints if LLM left them empty
+  if ((result.apiEndpoints ?? []).length === 0 && (result.modules ?? []).length > 0) {
+    const slugs = ['pages', 'editor', 'collaboration', 'versions', 'templates', 'settings'];
+    result.apiEndpoints = result.modules.flatMap((_m, i) => [
+      {
+        method: 'GET' as const,
+        path: `/api/${slugs[i] ?? `module-${i}`}`,
+        summary: `查询${_m.name}`
+      },
+      {
+        method: 'POST' as const,
+        path: `/api/${slugs[i] ?? `module-${i}`}`,
+        summary: `创建${_m.name}`
+      }
+    ]);
+  }
 
   await writeLayerOutput(documentId, 2, result, cwd);
   return result;

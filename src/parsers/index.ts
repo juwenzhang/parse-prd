@@ -1,5 +1,6 @@
 import type {SchemaNode} from '../agent';
 
+import {imageParser} from './image';
 import {markdownParser} from './markdown';
 import {pdfParser} from './pdf';
 import {textParser} from './text';
@@ -16,6 +17,7 @@ register(markdownParser);
 register(pdfParser);
 register(textParser);
 register(xlsxParser);
+register(imageParser);
 
 export async function parseDocument(source: string, input: ParserInput): Promise<SchemaNode[]> {
   const parser = parsers.get(source);

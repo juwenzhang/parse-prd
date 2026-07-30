@@ -1,0 +1,339 @@
+{
+  "meta": {
+    "title": "订单系统",
+    "version": "1.0",
+    "createdAt": "2026-07-30T14:45:36.906Z"
+  },
+  "overview": "",
+  "background": "当前系统缺少完整的订单管理能力，用户反馈下单后无法查看订单状态，退款流程不透明、效率低，客服压力大。",
+  "scope": {
+    "inScope": [],
+    "outOfScope": []
+  },
+  "functionalRequirements": [
+    {
+      "id": "FR-01",
+      "title": "未命名需求",
+      "description": "用户可提交包含多件商品的订单，并支持为不同商品指定不同收货地址。",
+      "priority": "P2",
+      "acceptanceCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": "FR-02",
+      "title": "未命名需求",
+      "description": "系统实时更新并展示订单状态，用户可在「我的订单」中查看所有历史订单。",
+      "priority": "P2",
+      "acceptanceCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": "FR-03",
+      "title": "未命名需求",
+      "description": "用户可在发货前主动取消订单，取消后系统自动发起退款。",
+      "priority": "P2",
+      "acceptanceCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": "FR-04",
+      "title": "未命名需求",
+      "description": "提供退款申请与处理功能，支持部分退款和自动/人工审核。",
+      "priority": "P2",
+      "acceptanceCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": "FR-05",
+      "title": "未命名需求",
+      "description": "用户收货后可对商品进行评分和文字评价，评价支持内容审核。",
+      "priority": "P2",
+      "acceptanceCriteria": [],
+      "dependencies": []
+    },
+    {
+      "id": "FR-06",
+      "title": "未命名需求",
+      "description": "运营人员可通过后台管理界面审核退款申请并查看退款日志。",
+      "priority": "P2",
+      "acceptanceCriteria": [],
+      "dependencies": []
+    }
+  ],
+  "nonFunctionalRequirements": [
+    {
+      "id": "NFR-1",
+      "category": "performance",
+      "description": "高可用：大促期间订单接口响应时间<500ms，并发支持≥10,000 QPS。",
+      "metric": "待定义"
+    },
+    {
+      "id": "NFR-2",
+      "category": "performance",
+      "description": "数据一致性：库存扣减与订单生成必须原子化，避免超卖。",
+      "metric": "待定义"
+    },
+    {
+      "id": "NFR-3",
+      "category": "performance",
+      "description": "可追溯：所有退款操作需记录完整日志，包含操作人、时间、金额、状态变更。",
+      "metric": "待定义"
+    },
+    {
+      "id": "NFR-4",
+      "category": "performance",
+      "description": "数据保留：线上订单数据保留2年，归档数据可离线查询。",
+      "metric": "待定义"
+    }
+  ],
+  "userStories": [
+    {
+      "id": "US-01",
+      "role": "购物用户",
+      "goal": "在选择多件商品后，能一次性填写多个收货地址并生成一张订单",
+      "reason": "提高效率",
+      "acceptanceCriteria": []
+    },
+    {
+      "id": "US-02",
+      "role": "普通买家",
+      "goal": "能实时知道订单当前处于什么状态",
+      "reason": "提高效率",
+      "acceptanceCriteria": []
+    },
+    {
+      "id": "US-03",
+      "role": "未支付用户",
+      "goal": "订单在30分钟内未支付时自动取消，释放占用的库存",
+      "reason": "提高效率",
+      "acceptanceCriteria": []
+    },
+    {
+      "id": "US-04",
+      "role": "下单用户",
+      "goal": "在商家发货前可以随时取消订单，并立刻收到退款",
+      "reason": "提高效率",
+      "acceptanceCriteria": []
+    },
+    {
+      "id": "US-05",
+      "role": "已收货用户",
+      "goal": "对不满意的商品申请退款，并能看到退款进度",
+      "reason": "提高效率",
+      "acceptanceCriteria": []
+    },
+    {
+      "id": "US-06",
+      "role": "收货用户",
+      "goal": "只退订单中的部分商品，且金额能自动计算",
+      "reason": "提高效率",
+      "acceptanceCriteria": []
+    },
+    {
+      "id": "US-07",
+      "role": "已签收用户",
+      "goal": "对购买的商品发布评价，帮助其他买家参考",
+      "reason": "提高效率",
+      "acceptanceCriteria": []
+    },
+    {
+      "id": "US-08",
+      "role": "运营专员",
+      "goal": "在后台审核大额退款申请，确保退款合理",
+      "reason": "提高效率",
+      "acceptanceCriteria": []
+    }
+  ],
+  "domainEntities": [
+    {
+      "name": "Order",
+      "attributes": [
+        {
+          "name": "orderId",
+          "type": "string",
+          "description": "订单唯一标识"
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "description": "下单用户ID"
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "description": "订单状态：PENDING_PAYMENT, PAID, SHIPPED, IN_TRANSIT, SIGNED, CANCELLED, REFUNDING, REFUNDED"
+        },
+        {
+          "name": "totalAmount",
+          "type": "number",
+          "description": "订单总金额（含优惠）"
+        },
+        {
+          "name": "createdAt",
+          "type": "datetime",
+          "description": "订单创建时间"
+        },
+        {
+          "name": "cancelDeadline",
+          "type": "datetime",
+          "description": "未支付订单自动取消截止时间"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "name": "OrderItem",
+      "attributes": [
+        {
+          "name": "itemId",
+          "type": "string",
+          "description": "订单项唯一标识"
+        },
+        {
+          "name": "orderId",
+          "type": "string",
+          "description": "所属订单ID"
+        },
+        {
+          "name": "productId",
+          "type": "string",
+          "description": "商品ID"
+        },
+        {
+          "name": "quantity",
+          "type": "number",
+          "description": "购买数量"
+        },
+        {
+          "name": "price",
+          "type": "number",
+          "description": "购买单价"
+        },
+        {
+          "name": "addressId",
+          "type": "string",
+          "description": "收货地址ID"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "name": "RefundRequest",
+      "attributes": [
+        {
+          "name": "refundId",
+          "type": "string",
+          "description": "退款申请唯一标识"
+        },
+        {
+          "name": "orderId",
+          "type": "string",
+          "description": "关联订单ID"
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "description": "申请用户ID"
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "description": "退款金额"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "description": "退款原因"
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "description": "退款状态：PENDING, APPROVED, REJECTED, PROCESSING, COMPLETED"
+        },
+        {
+          "name": "createdAt",
+          "type": "datetime",
+          "description": "申请时间"
+        }
+      ],
+      "relationships": []
+    },
+    {
+      "name": "Review",
+      "attributes": [
+        {
+          "name": "reviewId",
+          "type": "string",
+          "description": "评价唯一标识"
+        },
+        {
+          "name": "orderId",
+          "type": "string",
+          "description": "关联订单ID"
+        },
+        {
+          "name": "userId",
+          "type": "string",
+          "description": "评价用户ID"
+        },
+        {
+          "name": "rating",
+          "type": "number",
+          "description": "评分（1-5）"
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "description": "文字评价内容"
+        },
+        {
+          "name": "status",
+          "type": "enum",
+          "description": "审核状态：PENDING, APPROVED, REJECTED"
+        },
+        {
+          "name": "createdAt",
+          "type": "datetime",
+          "description": "评价时间"
+        }
+      ],
+      "relationships": []
+    }
+  ],
+  "constraints": [
+    "后端使用 Node.js，数据库 PostgreSQL，缓存 Redis，消息队列 Kafka 用于状态变更通知，前端使用 React。",
+    "不得修改现有用户登录注册及用户管理模块代码。",
+    "支付需对接微信支付、支付宝以及信用卡渠道，退款必须原路返回。",
+    "订单数据保留2年，之后归档至冷存储。",
+    "未支付订单30分钟后自动取消。",
+    "订单状态更新采用前端轮询，暂不使用推送。",
+    "退款金额≤500元自动处理，>500元需人工审核。",
+    "系统需支持大促期间高并发，不可出现超卖。"
+  ],
+  "glossary": [
+    {
+      "term": "超卖",
+      "definition": "实际售出商品数量超过库存数量，导致无法履约。"
+    },
+    {
+      "term": "原路返回",
+      "definition": "退款通过原支付通道（微信/支付宝/信用卡）返回到用户账户。"
+    },
+    {
+      "term": "待付款",
+      "definition": "订单已生成但用户尚未完成支付的初始状态。"
+    },
+    {
+      "term": "运输中",
+      "definition": "商品已由物流承运商揽收并进入转运流程。"
+    },
+    {
+      "term": "部分退款",
+      "definition": "对订单中部分商品进行退款操作，而非整单退款。"
+    },
+    {
+      "term": "订单取消",
+      "definition": "在商家发货前，用户主动终止订单的行为。"
+    }
+  ]
+}

@@ -21,7 +21,7 @@ export interface MockupComponent {
 
 export interface AgentInput {
   documentId: string;
-  source: 'pdf' | 'markdown' | 'text' | 'xlsx';
+  source: 'pdf' | 'markdown' | 'text' | 'xlsx' | 'image';
   content?: string;
   filePath?: string;
   focusTitle?: string;

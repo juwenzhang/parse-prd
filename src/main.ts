@@ -17,7 +17,7 @@ function hasFlag(args: string[], name: string): boolean {
 }
 
 function guardSource(v: string): DocSource {
-  const valid = new Set(['markdown', 'pdf', 'text', 'xlsx']);
+  const valid = new Set(['markdown', 'pdf', 'text', 'xlsx', 'image']);
   if (valid.has(v)) return v as DocSource;
   throw new Error(`Unknown source: ${v}. Use: markdown | pdf | text | xlsx`);
 }

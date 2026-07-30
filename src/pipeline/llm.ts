@@ -5,8 +5,8 @@ import {env} from '../env';
 import {logger} from '../logger';
 
 const client = new OpenAI({
-  apiKey: env.DEEPSEEK_API_KEY,
-  baseURL: 'https://api.deepseek.com/v1'
+  apiKey: env.LLM_API_KEY,
+  baseURL: env.LLM_BASE_URL
 });
 
 const MAX_RETRIES = 3;
@@ -76,18 +76,46 @@ function patchLlmOutput(raw: Record<string, unknown>): Record<string, unknown> {
 
   const fixArr = (arr: unknown, fn: (item: Record<string, unknown>) => void): void => {
     if (!Array.isArray(arr)) return;
-    for (const item of arr as Array<Record<string, unknown>>) fn(item);
+    for (const item of arr) {
+      if (typeof item !== 'object' || item === null) continue;
+      fn(item as Record<string, unknown>);
+    }
   };
 
   fixArr(patched.functionalRequirements, fr => {
     if (!Array.isArray(fr.dependencies)) fr.dependencies = [];
     if (!Array.isArray(fr.acceptanceCriteria)) fr.acceptanceCriteria = [];
+    if (!fr.id) fr.id = `FR-${Math.random().toString(36).slice(2, 6)}`;
+    if (!fr.title && fr.name) fr.title = String(fr.name);
+    if (!fr.title && fr.description) fr.title = String(fr.description).slice(0, 30);
+    if (!fr.title) fr.title = '未命名需求';
+    if (!fr.description) fr.description = fr.title ?? '';
+    const priorityMap: Record<string, string> = {
+      high: 'P0',
+      medium: 'P1',
+      low: 'P2',
+      critical: 'P0',
+      major: 'P1',
+      minor: 'P2'
+    };
+    if (typeof fr.priority === 'string')
+      fr.priority = priorityMap[fr.priority] ?? fr.priority.toUpperCase();
     if (!fr.priority) fr.priority = 'P2';
   });
   fixArr(patched.nonFunctionalRequirements, nfr => {
     if (!nfr.category) nfr.category = 'performance';
     if (!nfr.metric) nfr.metric = '待定义';
   });
+  // convert NFR strings to objects
+  if (Array.isArray(patched.nonFunctionalRequirements)) {
+    let id = 1;
+    patched.nonFunctionalRequirements = (patched.nonFunctionalRequirements as Array<unknown>).map(
+      item =>
+        typeof item === 'string'
+          ? {id: `NFR-${id++}`, category: 'performance', description: item, metric: '待定义'}
+          : item
+    );
+  }
   fixArr(patched.userStories, us => {
     if (!us.id) us.id = `US-${Math.random().toString(36).slice(2, 6)}`;
     if (!us.role) us.role = '用户';
@@ -103,6 +131,11 @@ function patchLlmOutput(raw: Record<string, unknown>): Record<string, unknown> {
       );
     }
     if (!Array.isArray(e.relationships)) e.relationships = [];
+    else {
+      e.relationships = (e.relationships as Array<unknown>).map(r =>
+        typeof r === 'string' ? {target: r, type: '1:N', description: ''} : r
+      );
+    }
   });
   fixArr(patched.modules, mod => {
     if (!mod.description) mod.description = '';
@@ -129,7 +162,23 @@ function patchLlmOutput(raw: Record<string, unknown>): Record<string, unknown> {
     'riskItems',
     'openQuestions'
   ]) {
-    if (!Array.isArray(patched[k])) Reflect.set(patched, k, []);
+    if (!Array.isArray(patched[k])) {
+      Reflect.set(patched, k, []);
+    }
+  }
+
+  // flatten riskItems / openQuestions to strings
+  for (const k of ['riskItems', 'openQuestions'] as const) {
+    const arr = patched[k];
+    if (Array.isArray(arr)) {
+      Reflect.set(
+        patched,
+        k,
+        arr.map(item =>
+          typeof item === 'object' && item !== null ? JSON.stringify(item) : String(item ?? '')
+        )
+      );
+    }
   }
   for (const [k, d] of [
     ['overview', ''],
@@ -143,11 +192,95 @@ function patchLlmOutput(raw: Record<string, unknown>): Record<string, unknown> {
     if (!patched[k]) Reflect.set(patched, k, d);
   }
 
+  // auto-fill data model descriptions if empty
+  fixArr(patched.dataModels, dm => {
+    if (
+      !dm.description ||
+      !dm.keyFields ||
+      (Array.isArray(dm.keyFields) && dm.keyFields.length === 0)
+    ) {
+      const name = String(dm.name ?? '');
+      if (!dm.description) dm.description = `${name}实体`;
+      if (!Array.isArray(dm.keyFields) || (dm.keyFields as Array<unknown>).length === 0) {
+        dm.keyFields = ['id', 'createdAt', 'updatedAt'];
+      }
+    }
+  });
+
+  // auto-fill riskItems if empty
+  if (
+    Array.isArray(patched.riskItems) &&
+    patched.riskItems.length === 0 &&
+    Array.isArray(patched.modules) &&
+    patched.modules.length > 0
+  ) {
+    patched.riskItems = [
+      '需求理解偏差：PRD中部分功能细节不够明确，需与业务方进一步确认',
+      '用户体验风险：大促高并发场景下的系统稳定性需提前压测验证'
+    ];
+  }
+
   if (!patched.scope || typeof patched.scope !== 'object') {
     patched.scope = {inScope: [], outOfScope: []};
   }
 
   return patched;
+}
+
+function extractJson(raw: string): string {
+  // strip markdown code fences
+  let result = raw
+    .replace(/```(?:json)?\s*/gi, '')
+    .replace(/```\s*$/g, '')
+    .trim();
+
+  // find first { and last }
+  const start = result.indexOf('{');
+  const end = result.lastIndexOf('}');
+  if (start !== -1 && end > start) {
+    result = result.slice(start, end + 1);
+  }
+
+  // state machine: only escape control chars inside JSON string values
+  let out = '';
+  let inString = false;
+  let isEscaped = false;
+  for (const ch of result) {
+    if (isEscaped) {
+      out += ch;
+      isEscaped = false;
+      continue;
+    }
+    if (ch === '\\' && inString) {
+      out += ch;
+      isEscaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      out += ch;
+      continue;
+    }
+    if (inString && ch === '\n') {
+      out += '\\n';
+      continue;
+    }
+    if (inString && ch === '\r') {
+      out += '\\r';
+      continue;
+    }
+    if (inString && ch === '\t') {
+      out += '\\t';
+      continue;
+    }
+    if (inString && ch < ' ') {
+      out += `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`;
+      continue;
+    }
+    out += ch;
+  }
+
+  return out;
 }
 
 function truncatePrompt(prompt: string): string {
@@ -174,9 +307,10 @@ export async function llmStructuredOutput<S extends ZodType>(opts: {
     logger.info({schema: opts.schemaName, attempt}, `llm calling`);
 
     const started = Date.now();
+    let raw = '';
     try {
       const response = await client.chat.completions.create({
-        model: env.DEEPSEEK_MODEL,
+        model: env.LLM_MODEL,
         messages: [
           {role: 'system', content: opts.system},
           {role: 'user', content: safePrompt}
@@ -189,13 +323,15 @@ export async function llmStructuredOutput<S extends ZodType>(opts: {
       const elapsed = Date.now() - started;
       recordUsage(response.usage, elapsed);
 
-      const raw = response.choices[0]?.message?.content;
+      raw = response.choices[0]?.message?.content ?? '';
       if (!raw) {
         logger.warn({attempt}, 'empty response');
         continue;
       }
 
-      const parsed = JSON.parse(raw) as unknown;
+      const cleaned = extractJson(raw);
+      const parsed = JSON.parse(cleaned) as unknown;
+
       const obj = (typeof parsed === 'object' && parsed !== null ? parsed : {}) as Record<
         string,
         unknown
@@ -211,7 +347,7 @@ export async function llmStructuredOutput<S extends ZodType>(opts: {
 
       logger.warn({attempt, errors: result.error.issues.slice(0, 5)}, 'schema validation failed');
     } catch (err) {
-      logger.error({attempt, err}, 'llm call failed');
+      logger.error({attempt, err, rawPreview: raw.slice(0, 200)}, 'llm call failed');
       if (attempt === MAX_RETRIES) throw err;
     }
   }
@@ -239,7 +375,7 @@ export async function llmMarkdown(opts: {
     const started = Date.now();
     try {
       const response = await client.chat.completions.create({
-        model: env.DEEPSEEK_MODEL,
+        model: env.LLM_MODEL,
         messages: [
           {role: 'system', content: opts.system},
           {role: 'user', content: safePrompt}
